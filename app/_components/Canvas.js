@@ -1,124 +1,134 @@
-"use client"
-import { useState, useEffect, useRef } from 'react';
-
-function ScissorsIcon(props) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="6" cy="6" r="3" />
-      <path d="M8.12 8.12 12 12" />
-      <path d="M20 4 8.12 15.88" />
-      <circle cx="6" cy="18" r="3" />
-      <path d="M14.8 14.8 20 20" />
-    </svg>
-  );
-}
+"use client";
+import React, { useState, useEffect, useRef } from "react";
+import RotatedPhone from "./RotatedPhone";
+import Phone from "./Phone";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 const CanvasComponent = () => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [rotation, setRotation] = useState(0);
-  const [showAlert, setShowAlert] = useState(false);
+  const [isRotated, setIsRotated] = useState(false); // Eklenen kısım: dönüş durumu
   const canvasRef = useRef(null);
-  const requestIdRef = useRef(null);
   const canvasWidth = 297 * 3.779527559055; // 297mm to pixels
   const canvasHeight = 210 * 3.779527559055; // 210mm to pixels
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
 
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Draw scissors icon
-      ctx.save();
-      ctx.translate(position.x, position.y);
-      ctx.rotate(((rotation % 360) + 360) % 360 * Math.PI / 180); // Ensure rotation stays within 360 degrees
-      ctx.fillStyle = 'red'; // Change color if needed
-
-      ctx.fill();
-      ctx.restore();
-    };
-
-    const updateCanvas = () => {
-      draw();
-      requestIdRef.current = requestAnimationFrame(updateCanvas);
-    };
-
-    requestIdRef.current = requestAnimationFrame(updateCanvas);
-
-    const handleMouseMove = (e) => {
+    const handleMouseDown = (e) => {
       const canvasBounds = canvas.getBoundingClientRect();
-      let x = e.clientX - canvasBounds.left;
-      let y = e.clientY - canvasBounds.top;
 
-      // Limiting icon position to stay inside canvas
-      x = Math.max(0, Math.min(canvas.width, x));
-      y = Math.max(0, Math.min(canvas.height, y));
+      const handleMouseMove = (e) => {
+        const newX = e.clientX - canvasBounds.left;
+        const newY = e.clientY - canvasBounds.top;
 
-      setPosition({ x, y });
+        // Ensure the icon stays within the canvas boundaries
+        let clampedX, clampedY;
+        if (isRotated) {
+          clampedX = Math.max(0, Math.min(newX, canvasBounds.width - 202));
+          clampedY = Math.max(0, Math.min(newY, canvasBounds.height - 407));
+        } else {
+          clampedX = Math.max(0, Math.min(newX, canvasBounds.width - 407));
+          clampedY = Math.max(0, Math.min(newY, canvasBounds.height - 202));
+        }
+
+        setPosition({ x: clampedX, y: clampedY });
+      };
+
+      const handleMouseUp = () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
     };
 
-    const handleKeyDown = (e) => {
-      if (e.key === 'r') {
-        setRotation((prevRotation) => prevRotation + 90);
-      } else if (e.key === ' ') {
-        setShowAlert(true);
-      }
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('keydown', handleKeyDown);
+    canvas.addEventListener("mousedown", handleMouseDown);
 
     return () => {
-      cancelAnimationFrame(requestIdRef.current);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('keydown', handleKeyDown);
+      canvas.removeEventListener("mousedown", handleMouseDown);
     };
-  }, [rotation]);
+  }, [isRotated]);
+
+  // Eklenen kısım: ikonu döndürme fonksiyonu
+  const handleRotateIcon = () => {
+    setIsRotated(!isRotated);
+  };
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-      }}
-    >
-      <canvas
-        ref={canvasRef}
-        width={canvasWidth}
-        height={canvasHeight}
-        style={{ border: '1px solid black' }}
-      />
+    <>
       <div
-        style={{           
-          position: 'absolute',
-          left: position.x,
-          top: position.y,
-          transform: `translate(-50%, -50%) rotate(${rotation % 360}deg)`,
+        style={{
+          position: "relative",
+          width: canvasWidth,
+          height: canvasHeight,
+          border: "1px solid black",
+          margin: "auto",
+          overflow: "hidden",
         }}
       >
-        <ScissorsIcon className="w-16 h-16 text-gray-800 dark:text-gray-200" />
-      </div>
-      {showAlert && (
-        <div>
-          <p>Rotation: {rotation % 360}</p>
-          <p>Start Point: ({position.x}, {position.y})</p>
+        <canvas
+          ref={canvasRef}
+          width={canvasWidth}
+          height={canvasHeight}
+          style={{ display: "block" }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            left: position.x,
+            top: position.y,
+            transform: "translate(0, 0)",
+            pointerEvents: "none",
+          }}
+        >
+          {isRotated ? ( // Eğer döndürülmüş durumdaysa RotatedScissorsIcon, değilse ScissorsIcon göster
+            <Phone
+              width={202}
+              height={407}
+              className="text-gray-800 dark:text-gray-200"
+            />
+          ) : (
+            <RotatedPhone
+              width={407}
+              height={202}
+              className="text-gray-800 dark:text-gray-200"
+            />
+          )}
+          <div
+            style={{
+              width: "5px",
+              height: "5px",
+              backgroundColor: "red",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              transform: "translate(-50%, -50%)",
+            }}
+          />
         </div>
-      )}
-    </div>
+      </div>
+      <>
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: "10px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          <Label>
+            Pointer Coordinates: ({Math.floor(position.x)},{" "}
+            {Math.floor(position.y)})
+          </Label>
+          <div style={{ marginTop: "10px" }}>
+            <Button onClick={handleRotateIcon}>Rotate</Button>
+          </div>
+        </div>
+      </>
+    </>
   );
 };
 
