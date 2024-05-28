@@ -1,8 +1,8 @@
 import Image from "next/image";
-import CutterComponent from "./_components/CutterComponent";
+import CanvasComponent from "./_components/Canvas";
 
 export default function Home() {
   return (
-    <CutterComponent />
+    <CanvasComponent />
   );
 }
